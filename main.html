@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Date Processor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .upload-section {
+            background: #f8f9fa;
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+        
+        .upload-section.dragover {
+            border-color: #00f2fe;
+            background: #e6f7ff;
+            transform: scale(1.02);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .config-section h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+        
+        .preview-section {
+            margin-bottom: 30px;
+        }
+        
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .preview-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .preview-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .preview-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .process-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+            display: block;
+            margin: 30px auto;
+        }
+        
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.6);
+        }
+        
+        .process-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results-section {
+            margin-top: 30px;
+        }
+        
+        .file-download {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .file-download:hover {
+            border-color: #4facfe;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .file-info h4 {
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .file-info p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.6);
+        }
+        
+        .columns-config {
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            background: white;
+        }
+        
+        .columns-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .column-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: move;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .column-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            border-left-color: #4facfe;
+        }
+        
+        .column-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        
+        .column-item.drag-over {
+            border-top: 3px solid #4facfe;
+        }
+        
+        .column-checkbox {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+        
+        .column-name {
+            flex: 1;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .drag-handle {
+            color: #6c757d;
+            cursor: move;
+            padding: 5px;
+            font-size: 1.2em;
+        }
+        
+        .drag-handle:hover {
+            color: #4facfe;
+        }
+        
+        .columns-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(108, 117, 125, 0.4);
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CSV Date Processor</h1>
+            <p>Upload your CSV, configure processing, and download results</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <h3>📁 Upload CSV File</h3>
+                <p>Drag and drop your CSV file here or click to browse</p>
+                <input type="file" id="csvFile" class="file-input" accept=".csv" />
+                <button class="upload-btn" onclick="document.getElementById('csvFile').click()">
+                    Choose File
+                </button>
+            </div>
+            
+            <div class="config-section" id="configSection" style="display: none;">
+                <h3>⚙️ Processing Configuration</h3>
+                <div class="form-group">
+                    <label for="dateColumn">Date Column:</label>
+                    <select id="dateColumn">
+                        <option value="">Select date column...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Columns Configuration:</label>
+                    <div class="columns-config">
+                        <div class="columns-list" id="columnsList">
+                            <!-- Columns will be populated here -->
+                        </div>
+                        <div class="columns-actions">
+                            <button type="button" class="action-btn" onclick="selectAllColumns()">Select All</button>
+                            <button type="button" class="action-btn" onclick="deselectAllColumns()">Deselect All</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="fileNamePrefix">Output File Prefix:</label>
+                    <input type="text" id="fileNamePrefix" value="processed_" placeholder="processed_">
+                </div>
+            </div>
+            
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h3>👀 Data Preview</h3>
+                <div style="overflow-x: auto;">
+                    <table class="preview-table" id="previewTable"></table>
+                </div>
+            </div>
+            
+            <button class="process-btn" id="processBtn" style="display: none;" onclick="processData()">
+                🚀 Process Data
+            </button>
+            
+            <div class="loading" id="loadingSection" style="display: none;">
+                <div class="spinner"></div>
+                <p>Processing your data...</p>
+            </div>
+            
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h3>📥 Download Results</h3>
+                <div id="downloadLinks"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let csvData = null;
+        let processedFiles = [];
+
+        // File upload handling
+        const csvFile = document.getElementById('csvFile');
+        const uploadSection = document.getElementById('uploadSection');
+
+        csvFile.addEventListener('change', handleFileSelect);
+
+        // Drag and drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Please select a CSV file.');
+                return;
+            }
+
+            Papa.parse(file, {
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showError('Error parsing CSV: ' + results.errors[0].message);
+                        return;
+                    }
+                    
+                    csvData = results.data;
+                    setupConfiguration();
+                    showPreview();
+                },
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true
+            });
+        }
+
+        function setupConfiguration() {
+            const dateColumn = document.getElementById('dateColumn');
+            const columnsList = document.getElementById('columnsList');
+            const headers = Object.keys(csvData[0] || {});
+            
+            // Setup date column dropdown
+            dateColumn.innerHTML = '<option value="">Select date column...</option>';
+            headers.forEach(header => {
+                const option = document.createElement('option');
+                option.value = header;
+                option.textContent = header;
+                dateColumn.appendChild(option);
+            });
+
+            // Setup columns list with drag and drop
+            columnsList.innerHTML = '';
+            headers.forEach((header, index) => {
+                const columnItem = document.createElement('div');
+                columnItem.className = 'column-item';
+                columnItem.draggable = true;
+                columnItem.dataset.column = header;
+                columnItem.dataset.index = index;
+                
+                columnItem.innerHTML = `
+                    <input type="checkbox" class="column-checkbox" checked data-column="${header}">
+                    <span class="column-name">${header}</span>
+                    <span class="drag-handle">⋮⋮</span>
+                `;
+                
+                // Add drag event listeners
+                columnItem.addEventListener('dragstart', handleDragStart);
+                columnItem.addEventListener('dragover', handleDragOver);
+                columnItem.addEventListener('drop', handleDrop);
+                columnItem.addEventListener('dragend', handleDragEnd);
+                columnItem.addEventListener('dragenter', handleDragEnter);
+                
+                columnsList.appendChild(columnItem);
+            });
+
+            document.getElementById('configSection').style.display = 'block';
+        }
+
+        function showPreview() {
+            const previewTable = document.getElementById('previewTable');
+            const headers = Object.keys(csvData[0] || {});
+            
+            // Clear existing content
+            previewTable.innerHTML = '';
+            
+            // Create header row
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            previewTable.appendChild(headerRow);
+            
+            // Show first 5 rows
+            const previewData = csvData.slice(0, 5);
+            previewData.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = row[header] || '';
+                    tr.appendChild(td);
+                });
+                previewTable.appendChild(tr);
+            });
+
+            document.getElementById('previewSection').style.display = 'block';
+            document.getElementById('processBtn').style.display = 'block';
+        }
+
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            // Add visual feedback
+            const items = document.querySelectorAll('.column-item:not(.dragging)');
+            items.forEach(item => item.classList.remove('drag-over'));
+            
+            if (this !== draggedElement && !this.classList.contains('dragging')) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (this !== draggedElement && draggedElement) {
+                const columnsList = document.getElementById('columnsList');
+                const allItems = Array.from(columnsList.children);
+                const draggedIndex = allItems.indexOf(draggedElement);
+                const targetIndex = allItems.indexOf(this);
+                
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    if (draggedIndex < targetIndex) {
+                        this.parentNode.insertBefore(draggedElement, this.nextSibling);
+                    } else {
+                        this.parentNode.insertBefore(draggedElement, this);
+                    }
+                }
+            }
+
+            // Clean up classes
+            const items = document.querySelectorAll('.column-item');
+            items.forEach(item => item.classList.remove('drag-over'));
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            
+            // Remove drag-over class from all items
+            const items = document.querySelectorAll('.column-item');
+            items.forEach(item => item.classList.remove('drag-over'));
+            
+            draggedElement = null;
+        }
+
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllColumns() {
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+            const dateColumn = document.getElementById('dateColumn').value;
+            const columnsToKeep = document.getElementById('columnsToKeep').value;
+            const fileNamePrefix = document.getElementById('fileNamePrefix').value || 'processed_';
+
+            if (!dateColumn) {
+                showError('Please select a date column.');
+                return;
+            }
+
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('processBtn').style.display = 'none';
+
+            setTimeout(() => {
+                try {
+                    // Group data by date
+                    const groupedData = {};
+                    
+                    csvData.forEach(row => {
+                        const dateValue = row[dateColumn];
+                        if (dateValue) {
+                            // Convert date to string for grouping
+                            const dateStr = formatDate(dateValue);
+                            if (!groupedData[dateStr]) {
+                                groupedData[dateStr] = [];
+                            }
+                            groupedData[dateStr].push(row);
+                        }
+                    });
+
+                    // Process columns to keep
+                    let keepColumns = null;
+                    if (columnsToKeep.trim()) {
+                        keepColumns = columnsToKeep.split(',').map(col => col.trim());
+                    }
+
+                    // Create files for each date group
+                    processedFiles = [];
+                    Object.keys(groupedData).forEach(date => {
+                        const dateData = groupedData[date];
+                        
+                        // Filter columns if specified
+                        let filteredData = dateData;
+                        if (keepColumns) {
+                            filteredData = dateData.map(row => {
+                                const filteredRow = {};
+                                keepColumns.forEach(col => {
+                                    if (row.hasOwnProperty(col)) {
+                                        filteredRow[col] = row[col];
+                                    }
+                                });
+                                return filteredRow;
+                            });
+                        }
+
+                        // Convert to CSV
+                        const csv = Papa.unparse(filteredData);
+                        const fileName = `${fileNamePrefix}${date.replace(/[\/\\:*?"<>|]/g, '_')}.csv`;
+                        
+                        processedFiles.push({
+                            name: fileName,
+                            data: csv,
+                            date: date,
+                            rowCount: filteredData.length
+                        });
+                    });
+
+                    showResults();
+                    showSuccess(`Successfully processed data into ${processedFiles.length} files.`);
+                } catch (error) {
+                    showError('Error processing data: ' + error.message);
+                } finally {
+                    document.getElementById('loadingSection').style.display = 'none';
+                }
+            }, 1000);
+        
+
+        function formatDate(dateValue) {
+            // Try to parse the date and format it consistently
+            let date;
+            if (dateValue instanceof Date) {
+                date = dateValue;
+            } else {
+                date = new Date(dateValue);
+            }
+            
+            if (isNaN(date.getTime())) {
+                return String(dateValue);
+            }
+            
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        }
+
+        function showResults() {
+            const downloadLinks = document.getElementById('downloadLinks');
+            downloadLinks.innerHTML = '';
+
+            processedFiles.forEach(file => {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file-download';
+                
+                fileDiv.innerHTML = `
+                    <div class="file-info">
+                        <h4>${file.name}</h4>
+                        <p>Date: ${file.date} | Rows: ${file.rowCount} | Columns: ${file.columnCount}</p>
+                    </div>
+                    <button class="download-btn" onclick="downloadFile('${file.name}', '${file.data.replace(/'/g, "\\'")}')">
+                        Download
+                    </button>
+                `;
+                
+                downloadLinks.appendChild(fileDiv);
+            });
+
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        function downloadFile(filename, csvData) {
+            const blob = new Blob([csvData], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(errorDiv, mainContent.firstChild);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(successDiv, mainContent.firstChild);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
