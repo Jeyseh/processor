@@ -317,6 +317,9 @@
         .action-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 10px rgba(108, 117, 125, 0.4);
+        }
+        
+        .error-message {
             background: #f8d7da;
             color: #721c24;
             padding: 15px;
@@ -623,12 +626,25 @@
             const checkboxes = document.querySelectorAll('.column-checkbox');
             checkboxes.forEach(cb => cb.checked = false);
         }
+
+        function processData() {
             const dateColumn = document.getElementById('dateColumn').value;
-            const columnsToKeep = document.getElementById('columnsToKeep').value;
             const fileNamePrefix = document.getElementById('fileNamePrefix').value || 'processed_';
 
             if (!dateColumn) {
                 showError('Please select a date column.');
+                return;
+            }
+
+            // Get selected columns
+            const selectedColumns = [];
+            const checkboxes = document.querySelectorAll('.column-checkbox:checked');
+            checkboxes.forEach(cb => {
+                selectedColumns.push(cb.dataset.column);
+            });
+
+            if (selectedColumns.length === 0) {
+                showError('Please select at least one column to include in the output.');
                 return;
             }
 
@@ -652,30 +668,21 @@
                         }
                     });
 
-                    // Process columns to keep
-                    let keepColumns = null;
-                    if (columnsToKeep.trim()) {
-                        keepColumns = columnsToKeep.split(',').map(col => col.trim());
-                    }
-
                     // Create files for each date group
                     processedFiles = [];
                     Object.keys(groupedData).forEach(date => {
                         const dateData = groupedData[date];
                         
-                        // Filter columns if specified
-                        let filteredData = dateData;
-                        if (keepColumns) {
-                            filteredData = dateData.map(row => {
-                                const filteredRow = {};
-                                keepColumns.forEach(col => {
-                                    if (row.hasOwnProperty(col)) {
-                                        filteredRow[col] = row[col];
-                                    }
-                                });
-                                return filteredRow;
+                        // Filter columns based on selection
+                        const filteredData = dateData.map(row => {
+                            const filteredRow = {};
+                            selectedColumns.forEach(col => {
+                                if (row.hasOwnProperty(col)) {
+                                    filteredRow[col] = row[col];
+                                }
                             });
-                        }
+                            return filteredRow;
+                        });
 
                         // Convert to CSV
                         const csv = Papa.unparse(filteredData);
@@ -685,7 +692,8 @@
                             name: fileName,
                             data: csv,
                             date: date,
-                            rowCount: filteredData.length
+                            rowCount: filteredData.length,
+                            columnCount: selectedColumns.length
                         });
                     });
 
@@ -697,7 +705,7 @@
                     document.getElementById('loadingSection').style.display = 'none';
                 }
             }, 1000);
-        
+        }
 
         function formatDate(dateValue) {
             // Try to parse the date and format it consistently
@@ -728,7 +736,7 @@
                         <h4>${file.name}</h4>
                         <p>Date: ${file.date} | Rows: ${file.rowCount} | Columns: ${file.columnCount}</p>
                     </div>
-                    <button class="download-btn" onclick="downloadFile('${file.name}', '${file.data.replace(/'/g, "\\'")}')">
+                    <button class="download-btn" onclick="downloadFile('${file.name}', \`${file.data.replace(/`/g, '\\`')}\`)">
                         Download
                     </button>
                 `;
